@@ -10,6 +10,7 @@ from .config import DEFAULT_MODEL_PATH
 from .metrics import compute_metrics
 from .phases import detect_phases
 from .pose_extraction import extract_poses
+from .segmentation import locate_swing
 from .overlay import render_overlay
 
 
@@ -51,8 +52,20 @@ def run(args: argparse.Namespace) -> dict:
         f"({meta.width}x{meta.height}); pose found in {detected}/{meta.frame_count}."
     )
 
-    print("[2/4] Detecting swing phases ...")
-    phases = detect_phases(frames, meta)
+    print("[2/4] Locating swing & detecting phases ...")
+    location = locate_swing(args.input, frames, meta)
+    print(
+        f"      swing window: frames {location.window[0]}-{location.window[1]} "
+        f"({location.num_shots} shot(s), {len(location.cuts)} cut(s))"
+    )
+    for w in location.warnings:
+        print(f"      ! {w}")
+    if not location.reliable:
+        print("      " + "=" * 44)
+        print("      >> LOW CONFIDENCE: input isn't a clean single swing;")
+        print("         metrics below are unreliable. See warnings above.")
+        print("      " + "=" * 44)
+    phases = detect_phases(frames, meta, window=location.window)
     print(
         f"      address=f{phases.address}  top=f{phases.top}  impact=f{phases.impact}"
     )
@@ -75,6 +88,13 @@ def run(args: argparse.Namespace) -> dict:
             "width": meta.width,
             "height": meta.height,
             "frame_count": meta.frame_count,
+        },
+        "swing_location": {
+            "window": list(location.window),
+            "num_shots": location.num_shots,
+            "cuts": location.cuts,
+            "reliable": location.reliable,
+            "warnings": location.warnings,
         },
         "phases": {
             "address": phases.address,

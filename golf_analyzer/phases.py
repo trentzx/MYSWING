@@ -82,46 +82,70 @@ def _wrist_midpoint_pixels(frames: list[PoseFrame], meta: VideoMeta) -> np.ndarr
     return np.vstack([mx, my]).T
 
 
-def detect_phases(
-    frames: list[PoseFrame],
-    meta: VideoMeta,
-    *,
-    smooth_window: int = 5,
-) -> SwingPhases:
-    n = len(frames)
-    if n < 5:
-        raise ValueError("Video too short for phase detection (need >= 5 frames).")
+def wrist_track(
+    frames: list[PoseFrame], meta: VideoMeta, smooth_window: int = 5
+) -> tuple[np.ndarray, np.ndarray]:
+    """Smoothed wrist-midpoint track and per-frame hand speed.
 
+    Returns ``(wrist_xy, speed)`` where ``wrist_xy`` is (N, 2) pixels and
+    ``speed`` is (N,) px/frame (first element 0). Shared by phase detection
+    and swing segmentation so both see the same trajectory.
+    """
     wrist = _wrist_midpoint_pixels(frames, meta)
     wx = _moving_average(wrist[:, 0], smooth_window)
     wy = _moving_average(wrist[:, 1], smooth_window)
     wrist_s = np.vstack([wx, wy]).T
 
-    # Frame-to-frame speed (px/frame); prepend 0 to keep length N.
     vel = np.diff(wrist_s, axis=0)
     speed = np.concatenate([[0.0], np.linalg.norm(vel, axis=1)])
     speed = _moving_average(speed, smooth_window)
+    return wrist_s, speed
 
-    # --- impact: global speed peak -----------------------------------------
-    impact = int(np.nanargmax(speed))
 
-    # --- top: highest hands (min y) strictly before impact -----------------
-    # Guard against impact landing at frame 0 (degenerate clips).
-    search_end = max(impact, 1)
-    top = int(np.nanargmin(wy[:search_end]))
+def detect_phases(
+    frames: list[PoseFrame],
+    meta: VideoMeta,
+    *,
+    smooth_window: int = 5,
+    window: tuple[int, int] | None = None,
+) -> SwingPhases:
+    """Detect address/top/impact.
+
+    ``window`` optionally restricts the search to ``[start, end)`` — used to
+    focus on the swing segment located by :mod:`golf_analyzer.segmentation`,
+    so a longer/multi-shot clip doesn't derail detection. The returned
+    ``wrist_xy``/``speed`` arrays always span the full clip (for the overlay).
+    """
+    n = len(frames)
+    if n < 5:
+        raise ValueError("Video too short for phase detection (need >= 5 frames).")
+
+    wrist_s, speed = wrist_track(frames, meta, smooth_window)
+    wy = wrist_s[:, 1]
+
+    lo, hi = (0, n) if window is None else window
+    lo = max(0, min(lo, n - 2))
+    hi = max(lo + 2, min(hi, n))
+
+    # --- impact: speed peak within the window ------------------------------
+    impact = lo + int(np.nanargmax(speed[lo:hi]))
+
+    # --- top: highest hands (min y) between window start and impact ---------
+    search_end = max(impact, lo + 1)
+    top = lo + int(np.nanargmin(wy[lo:search_end]))
 
     # --- address: last quiet frame before the takeaway ---------------------
-    peak_speed = float(np.nanmax(speed))
+    peak_speed = float(np.nanmax(speed[lo:hi]))
     quiet_thresh = max(0.5, 0.06 * peak_speed)  # px/frame
-    address = 0
-    for i in range(top - 1, -1, -1):
+    address = lo
+    for i in range(top - 1, lo - 1, -1):
         if speed[i] < quiet_thresh:
             address = i
             break
 
     # Sanity: enforce address < top < impact.
     if not (address < top < impact):
-        address = min(address, max(0, top - 1))
+        address = min(address, max(lo, top - 1))
         top = min(max(top, address + 1), impact - 1)
 
     return SwingPhases(

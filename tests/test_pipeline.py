@@ -14,6 +14,9 @@ from golf_analyzer.config import (
 from golf_analyzer.pose_extraction import PoseFrame, VideoMeta
 from golf_analyzer.phases import detect_phases
 from golf_analyzer.metrics import compute_metrics
+from golf_analyzer.segmentation import (
+    detect_cuts, find_shots, choose_swing_shot, assess_quality,
+)
 
 W, H = 1280, 720
 FPS = 120.0
@@ -101,7 +104,75 @@ def test_metrics_are_sane():
     assert abs(m.spine_tilt_deg - expected) < 1.0
 
 
+def _static_frame(i: int) -> PoseFrame:
+    """A frame of someone standing still (e.g. an intro before the swing)."""
+    lm = np.zeros((NUM_LANDMARKS, 4), dtype=np.float32)
+    lm[:, 3] = 1.0
+    lm[NOSE] = [0.50, 0.20, 0.0, 1.0]
+    lm[LEFT_SHOULDER] = [0.50, 0.35, 0.0, 1.0]
+    lm[RIGHT_SHOULDER] = [0.60, 0.35, 0.0, 1.0]
+    lm[LEFT_HIP] = [0.45, 0.60, 0.0, 1.0]
+    lm[RIGHT_HIP] = [0.55, 0.60, 0.0, 1.0]
+    lm[LEFT_WRIST] = [0.50, 0.70, 0.0, 1.0]
+    lm[RIGHT_WRIST] = [0.50, 0.70, 0.0, 1.0]
+    return PoseFrame(i, int(round(i * 1000.0 / FPS)), lm, present=True)
+
+
+def _build_two_shot(n_static: int = 45):
+    """Static intro shot followed by a swing shot (mimics edited footage)."""
+    static = [_static_frame(i) for i in range(n_static)]
+    swing = _build_frames()  # 100-frame swing
+    frames = static + swing
+    # Reindex so positions are contiguous (segmentation works positionally).
+    for pos, f in enumerate(frames):
+        f.index = pos
+    return frames, n_static
+
+
+def test_detect_cuts_finds_a_spike():
+    diffs = np.full(80, 2.0, dtype=np.float32)
+    diffs[0] = 0.0
+    diffs[45] = 60.0  # a hard scene cut
+    assert detect_cuts(diffs) == [45]
+
+
+def test_find_shots_splits_at_cuts():
+    assert find_shots(100, [45]) == [(0, 45), (45, 100)]
+    assert find_shots(100, []) == [(0, 100)]
+
+
+def test_choose_swing_shot_prefers_the_swing_segment():
+    frames, cut = _build_two_shot()
+    meta = VideoMeta(fps=FPS, width=W, height=H, frame_count=len(frames))
+    shots = find_shots(len(frames), [cut])
+    window = choose_swing_shot(frames, meta, shots)
+    assert window == (cut, len(frames)), window
+
+
+def test_windowed_phase_detection_ignores_the_intro():
+    frames, cut = _build_two_shot()
+    meta = VideoMeta(fps=FPS, width=W, height=H, frame_count=len(frames))
+    phases = detect_phases(frames, meta, window=(cut, len(frames)))
+    # Ground-truth top/impact live inside the swing shot (offset by `cut`).
+    assert abs(phases.top - (cut + GT_TOP)) <= 4, phases.top
+    assert phases.top < phases.impact
+    assert phases.address >= cut
+
+
+def test_assess_quality_flags_multiple_shots():
+    frames, cut = _build_two_shot()
+    meta = VideoMeta(fps=FPS, width=W, height=H, frame_count=len(frames))
+    shots = find_shots(len(frames), [cut])
+    warnings = assess_quality(frames, meta, [cut], shots, (cut, len(frames)))
+    assert any("shot" in w.lower() for w in warnings), warnings
+
+
 if __name__ == "__main__":
     test_phase_detection_picks_correct_events()
     test_metrics_are_sane()
+    test_detect_cuts_finds_a_spike()
+    test_find_shots_splits_at_cuts()
+    test_choose_swing_shot_prefers_the_swing_segment()
+    test_windowed_phase_detection_ignores_the_intro()
+    test_assess_quality_flags_multiple_shots()
     print("All synthetic-data tests passed.")
