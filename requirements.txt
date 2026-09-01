@@ -1,0 +1,5 @@
+# Golf Swing Analyzer v1 — dependencies
+# MediaPipe 0.10.33+ ships the Tasks API (PoseLandmarker) and drops mp.solutions.
+mediapipe>=0.10.33
+opencv-python>=4.9.0
+numpy>=1.26,<2.0

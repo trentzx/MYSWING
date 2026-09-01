@@ -1,0 +1,18 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+
+# MediaPipe model files (downloaded via scripts/download_model.py)
+models/*.task
+
+# Data
+data/input/*
+data/output/*
+!data/input/.gitkeep
+!data/output/.gitkeep
+
+# Editor
+.vscode/
+.idea/
