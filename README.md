@@ -45,6 +45,23 @@ python -m golf_analyzer data\input\my_swing.mp4 --no-video --json data\output\my
 python -m golf_analyzer data\input\my_swing.mp4 -m models\pose_landmarker_heavy.task -o out.mp4
 ```
 
+## Input handling & reliability
+
+v1 targets a **single, continuous down-the-line swing**. Before analyzing, the
+tool segments the clip to find the actual swing and guards against unsuitable
+input:
+
+* Detects hard **scene cuts** (frame differencing) and splits the clip into shots.
+* Picks the shot containing the swing (strongest hand-speed burst with the body in frame).
+* Emits **warnings** for low frame rate, poor pose coverage, or edited/multi-shot
+  (broadcast) footage.
+* Sets a **`reliable` flag** — when the input isn't a clean single swing (e.g. a
+  TV analysis segment with replays and camera cuts), metrics are still reported
+  but clearly marked **LOW CONFIDENCE**.
+
+> Note: cleanly extracting one swing from a long broadcast montage is a harder,
+> later problem. For trustworthy numbers, feed one uncut swing.
+
 ## Phase-detection heuristic
 
 * Track the **wrist midpoint** (mean of both wrists) in pixels, gap-filled and smoothed.
@@ -60,6 +77,7 @@ python -m golf_analyzer data\input\my_swing.mp4 -m models\pose_landmarker_heavy.
 golf_analyzer/
   config.py           landmark indices, model path, skeleton connections
   pose_extraction.py  video -> per-frame pose (Tasks API, VIDEO mode)
+  segmentation.py     locate the swing in a clip + input-quality guardrails
   phases.py           wrist trajectory -> address / top / impact
   metrics.py          tempo, head stability, spine tilt
   overlay.py          annotated video renderer
