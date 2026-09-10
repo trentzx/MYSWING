@@ -8,6 +8,38 @@ renders an annotated output video.
 Uses MediaPipe's **Tasks API** (`PoseLandmarker` with a `.task` model file), not
 the legacy `mp.solutions.pose` (absent from mediapipe 0.10.33+).
 
+## Web frontend
+
+The responsive **MYSWING Swing Studio** lives in `frontend/`. It uses plain
+HTML, CSS, and JavaScript, with no npm dependencies or build step.
+
+```powershell
+python -m http.server 5173 --bind 127.0.0.1 --directory frontend
+```
+
+Open http://localhost:5173. Choose or drag in an MP4, MOV, or WebM video
+(up to 250 MB) to review it locally. Codec support depends on your browser;
+H.264 MP4 is recommended. Videos and reports are not uploaded or saved.
+
+To see measured results, generate a report with the existing analyzer:
+
+```powershell
+python -m golf_analyzer data/input/my_swing.mp4 --json data/output/my_swing.json
+```
+
+Use **Import analysis report** to load the JSON file. The studio displays
+tempo, head stability, spine tilt, and recording-confidence warnings. Load
+the original or annotated video with the filename recorded in the report
+to enable Address, Top, and Impact navigation. Keep matching videos and
+reports together; filename matching does not verify video contents.
+
+The frontend is a review interface: selecting a video does **not** run
+MediaPipe in the browser. Analysis still runs through the Python CLI.
+You can host the contents of `frontend/` on any static website host.
+Google Fonts supplies the typefaces, with local sans-serif fallbacks.
+
+Frontend syntax check: `node --check frontend/app.js`.
+
 ## Metrics (v1)
 
 | Metric | Definition |

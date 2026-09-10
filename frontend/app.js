@@ -84,4 +84,3 @@ $('#report-input').addEventListener('change', async event => {
     $('#report-status').textContent = 'Could not read this report. Choose a Golf Swing Analyzer JSON file under 1 MB with valid metrics, frame rate, and swing phases. Your previous report is unchanged.';
   }
 });
-window.addEventListener('pagehide', () => { if (videoUrl) URL.revokeObjectURL(videoUrl); });
