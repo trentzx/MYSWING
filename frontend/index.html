@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A focused workspace to review your golf swing, tempo, head stability, and spine tilt.">
+  <meta name="theme-color" content="#173d32"><title>MYSWING — Swing studio</title>
+  <link rel="stylesheet" href="styles.css"><script type="module" src="app.js"></script>
+</head>
+<body>
+  <header class="header"><a class="brand" href="./" aria-label="Myswing home"><span class="brand-mark">M<span>↗</span></span>MY<span>SWING</span><small>SWING STUDIO</small></a><span class="header-note"><span class="dot"></span> A little more intentional. Every swing.</span><a class="guide-link" href="#recording">Recording guide <span aria-hidden="true">↗</span></a></header>
+  <main>
+    <section class="intro"><div><p class="eyebrow">YOUR GAME, IN FOCUS</p><h1>Good swings start<br>with a closer look<span>.</span></h1><p class="intro-copy">Slow it down. Find your rhythm. See the details that matter.</p></div><div class="intro-aside"><span class="edition">01 / THE SWING STUDIO</span><p>One swing.<br>Three useful perspectives.</p></div></section>
+    <div class="workspace-heading"><h2>Your swing workspace</h2><span class="pill">Down-the-line view</span></div>
+    <section class="workspace" aria-label="Swing review">
+      <div class="video-column">
+        <div class="video-shell" id="drop-zone"><div class="video-top"><span><span class="dot"></span> SWING REVIEW</span><span id="video-tag">READY WHEN YOU ARE</span></div>
+          <div class="empty-video" id="empty-video"><span class="upload-symbol" aria-hidden="true">↥</span><h2>Make room for your next swing.</h2><p>Drop a swing video here, or choose one below.<br>Your video stays on this device.</p><button class="button lime" id="choose-video">Choose swing video <span aria-hidden="true">↗</span></button><span class="file-hint">MP4, MOV or WebM · up to 250 MB</span></div>
+          <video id="swing-video" controls playsinline hidden aria-label="Your swing video"></video>
+          <div class="video-bottom"><span id="video-name">A fresh perspective on your game</span><button class="text-button light" id="replace-video" hidden>Change video ↗</button><span id="empty-duration">— : —</span></div>
+        </div>
+        <div class="phase-strip" aria-label="Swing phases"><button data-phase="address" disabled><span>01</span> Address <span class="phase-time">—</span></button><button data-phase="top" disabled><span>02</span> Top <span class="phase-time">—</span></button><button data-phase="impact" disabled><span>03</span> Impact <span class="phase-time">—</span></button></div>
+        <p class="workspace-note">Have an analyzed swing? Import its report to explore your metrics and jump between key moments.</p>
+      </div>
+      <aside class="metrics-panel"><div class="panel-heading"><h2>The details</h2><span class="small-label" id="report-tag">NO REPORT YET</span></div>
+        <article class="metric"><div class="metric-heading"><h3>Tempo ratio</h3><span aria-hidden="true">◴</span></div><div class="metric-value" id="tempo">—<small> : 1</small></div><p>Backswing to downswing</p><div class="tempo-track"><span id="tempo-bar"></span></div><div class="track-labels"><span>Backswing</span><span>Downswing</span></div></article>
+        <article class="metric"><div class="metric-heading"><h3>Head stability</h3><span aria-hidden="true">◎</span></div><div class="metric-value" id="head">—<small>%</small></div><p>Movement relative to shoulder width.<br>Lower means a steadier head.</p></article>
+        <article class="metric"><div class="metric-heading"><h3>Spine tilt</h3><span aria-hidden="true">∠</span></div><div class="metric-value" id="spine">—<small>°</small></div><p>Angle from vertical at address.</p></article>
+        <button class="button outline" id="choose-report">Import analysis report <span aria-hidden="true">↗</span></button><p class="report-help">Use the JSON report from Golf Swing Analyzer.</p><p id="report-status" role="status" aria-live="polite"></p>
+      </aside>
+    </section>
+    <p id="video-status" role="status" aria-live="polite"></p>
+    <section class="recording" id="recording"><div class="recording-title"><p class="eyebrow">SET YOURSELF UP</p><h2>A better recording.<br>A clearer picture.</h2><span class="recording-caption">A few details make all the difference.</span></div><article><span class="step">01</span><h3>Find the right angle</h3><p>Place your camera behind you, looking down the target line. Keep your whole body in frame.</p></article><article><span class="step">02</span><h3>Keep it smooth</h3><p>Record at 60 fps or higher. Use a steady camera and a clear background for easier tracking.</p></article><article><span class="step">03</span><h3>One complete swing</h3><p>Include your setup and follow-through. Use one continuous clip without cuts or replays.</p></article></section>
+    <footer><a class="footer-brand" href="./">MYSWING<span>↗</span></a><p>Small details. Better understanding.</p><span>BUILT FOR YOUR PRACTICE</span></footer>
+  </main>
+  <input id="video-input" type="file" accept="video/mp4,video/quicktime,video/webm,.mov" hidden><input id="report-input" type="file" accept="application/json,.json" hidden>
+</body>
+</html>
